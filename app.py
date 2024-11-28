@@ -21,6 +21,8 @@ n_fft = 1024
 # The `hop_length` defines how much the window moves (or "hops") forward between consecutive FFT calculations.
 hop_length = 1024 // 4
 
+step_index = 2
+
 @app.route('/process_audio', methods=['POST'])
 def process_audio():
     try:
@@ -39,10 +41,15 @@ def process_audio():
         )
         power_to_db_func = torchaudio.transforms.AmplitudeToDB(stype="power")
 
+        def normalize(x):
+            eps = 1e-6
+            return (x - x.mean()) / (x.std() + eps)
+
         mel_sig = transform_mel_func(waveform)
         mel_sig = power_to_db_func(mel_sig)
-
-        return jsonify(mel_sig), 200
+        mel_sig = normalize(mel_sig)
+        mel_sig = mel_sig.squeeze().tolist()
+        return jsonify({"mel_spectrogram":mel_sig}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -166,6 +173,7 @@ class TorchAudioUtils:
 
         # Return the resampled mono signal and the new sample rate
         return (new_sig, newsr)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
