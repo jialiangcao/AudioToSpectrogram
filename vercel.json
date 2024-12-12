@@ -15,5 +15,8 @@
       "src": "/(.*)",
       "dest": "/app.py"
     }
-  ]
+  ],
+  "config": {
+    "maxLambdaSize": "2000mb"
+  }
 }
