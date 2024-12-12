@@ -9,7 +9,6 @@
   "routes": [
     {
       "src": "/process_audio",
-      "methods": ["POST"],
       "dest": "/app.py"
     },
     {
