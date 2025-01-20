@@ -4,6 +4,7 @@ import torchaudio
 import gzip
 import io
 import struct
+import numpy
 
 app = Flask(__name__)
 
@@ -15,6 +16,7 @@ HOP_LENGTH = N_FFT // 4
 @app.route('/process_audio', methods=['POST'])
 def process_audio():
     try:
+        spectrograms = [None]*5
         compressedAudioData = request.get_data()
         
         with gzip.GzipFile(fileobj=io.BytesIO(compressedAudioData)) as f:
@@ -22,24 +24,36 @@ def process_audio():
 
         doubleCount = len(audioData) // 8
         audioData = struct.unpack(f'{doubleCount}d', audioData)
-        waveform = torch.tensor(list(audioData), dtype=torch.float32).unsqueeze(0)
 
-        mel_spec = torchaudio.transforms.MelSpectrogram(
-            sample_rate=SR,
-            n_mels=AUDIO_N_MELS,
-            n_fft=N_FFT,
-            hop_length=HOP_LENGTH,
-        )(waveform)
+        for n in range(5):
+            dataLength = len(audioData)
+            arrayLength = dataLength//5
+            tempData = numpy.zeros(arrayLength)
 
-        mel_db = torchaudio.transforms.AmplitudeToDB()(mel_spec)
+            tempData = numpy.array(audioData[n * arrayLength: (n + 1) * arrayLength])
+            #for rawIdx in range(arrayLength):
+            #    currentIdx = rawIdx+(n*arrayLength)
+            #    tempData[rawIdx]=audioData[currentIdx]
         
-        mel_normalized = (mel_db - mel_db.mean()) / (mel_db.std() + 1e-6)
+            waveform = torch.tensor(list(tempData), dtype=torch.float32).unsqueeze(0)
+
+            mel_spec = torchaudio.transforms.MelSpectrogram(
+                sample_rate=SR,
+                n_mels=AUDIO_N_MELS,
+                n_fft=N_FFT,
+                hop_length=HOP_LENGTH,
+            )(waveform)
+
+            mel_db = torchaudio.transforms.AmplitudeToDB()(mel_spec)
+            mel_normalized = (mel_db - mel_db.mean()) / (mel_db.std() + 1e-6)
+            spectrograms[n] = mel_normalized.squeeze().tolist()
         
-        response = jsonify({"mel_spectrogram": mel_normalized.squeeze().tolist()})
+        response = jsonify({"mel_spectrogram": spectrograms})
         return response, 200
     except Exception as e:
         print(f"Error occurred: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+# Comment out debug for production
 if __name__ == '__main__':
     app.run(debug=True)
