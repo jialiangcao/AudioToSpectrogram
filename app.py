@@ -6,6 +6,7 @@ import io
 import struct
 import numpy
 
+print(numpy.__version__)
 app = Flask(__name__)
 
 SR = 44100
@@ -28,14 +29,9 @@ def process_audio():
         for n in range(5):
             dataLength = len(audioData)
             arrayLength = dataLength//5
-            tempData = numpy.zeros(arrayLength)
-
             tempData = numpy.array(audioData[n * arrayLength: (n + 1) * arrayLength])
-            #for rawIdx in range(arrayLength):
-            #    currentIdx = rawIdx+(n*arrayLength)
-            #    tempData[rawIdx]=audioData[currentIdx]
         
-            waveform = torch.tensor(list(tempData), dtype=torch.float32).unsqueeze(0)
+            waveform = torch.tensor(tempData, dtype=torch.float32).unsqueeze(0)
 
             mel_spec = torchaudio.transforms.MelSpectrogram(
                 sample_rate=SR,
@@ -52,8 +48,4 @@ def process_audio():
         return response, 200
     except Exception as e:
         print(f"Error occurred: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-# Comment out debug for production
-if __name__ == '__main__':
-    app.run(debug=True)
+        return jsonify({"error": str(e)}), 500 
