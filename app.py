@@ -19,7 +19,7 @@ def decompress_audio(compressed_audio_data):
     double_count = len(audio_data) // 8
     return struct.unpack(f'{double_count}d', audio_data)
 
-def split_audio(audio_data, num_segments=27):
+def split_audio(audio_data, num_segments=5):
     data_length = len(audio_data)
     segment_length = data_length // num_segments
     return [numpy.array(audio_data[n * segment_length: (n + 1) * segment_length]) for n in range(num_segments)]
