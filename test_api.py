@@ -4,7 +4,7 @@ import gzip
 import io
 import struct
 import numpy as np
-from app import app, decompress_audio, split_audio, create_mel_spectrogram
+from main import app, decompress_audio, split_audio, create_mel_spectrogram
 
 @pytest.fixture
 def client():
