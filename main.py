@@ -8,22 +8,28 @@ import numpy
 
 app = Flask(__name__)
 
+# Constants
 SR = 44100
 AUDIO_N_MELS = 64
 N_FFT = 1024
 HOP_LENGTH = N_FFT // 4
+segments = 2
+byte_size = 8 # Representing 8 bytes for a float64 or Double size, must match type input type
 
+# Converts gzipped data into raw values
 def decompress_audio(compressed_audio_data):
     with gzip.GzipFile(fileobj=io.BytesIO(compressed_audio_data)) as f:
         audio_data = f.read()
-    double_count = len(audio_data) // 8
+    double_count = len(audio_data) // byte_size
     return struct.unpack(f'{double_count}d', audio_data)
 
-def split_audio(audio_data, num_segments=2):
+# Divides data into segments
+def split_audio(audio_data, num_segments = segments):
     data_length = len(audio_data)
     segment_length = data_length // num_segments
     return [numpy.array(audio_data[n * segment_length: (n + 1) * segment_length]) for n in range(num_segments)]
 
+# Creates mel spectrogram using torchaudio functions
 def create_mel_spectrogram(waveform):
     mel_spec = torchaudio.transforms.MelSpectrogram(
         sample_rate=SR,
@@ -43,11 +49,13 @@ def process_audio():
         audio_segments = split_audio(audio_data)
         
         spectrograms = []
+        # Appends each spectrogram to a list
         for segment in audio_segments:
             waveform = torch.tensor(segment, dtype=torch.float32).unsqueeze(0)
             spectrogram = create_mel_spectrogram(waveform)
             spectrograms.append(spectrogram)
         
+        # Return the list in a JSON serialized response
         response = jsonify({"mel_spectrogram": spectrograms})
         return response, 200
     except Exception as e:
