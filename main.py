@@ -1,8 +1,6 @@
 from flask import Flask, request, jsonify
 import torch
 import torchaudio
-import gzip
-import io
 import struct
 import numpy
 
@@ -16,12 +14,10 @@ HOP_LENGTH = N_FFT // 4
 segments = 2
 byte_size = 8 # Representing 8 bytes for a float64 or Double size, must match type input type
 
-# Converts gzipped data into raw values
-def decompress_audio(compressed_audio_data):
-    with gzip.GzipFile(fileobj=io.BytesIO(compressed_audio_data)) as f:
-        audio_data = f.read()
-    double_count = len(audio_data) // byte_size
-    return struct.unpack(f'{double_count}d', audio_data)
+def unpack_audio(raw_audio_data):
+    double_count = len(raw_audio_data) // byte_size
+    # '<' for little-endian (Apple), 'd' for double
+    return struct.unpack(f'<{double_count}d', raw_audio_data)
 
 # Divides data into segments
 def split_audio(audio_data, num_segments = segments):
@@ -45,7 +41,7 @@ def create_mel_spectrogram(waveform):
 def process_audio():
     try:
         compressed_audio_data = request.get_data()
-        audio_data = decompress_audio(compressed_audio_data)
+        audio_data = unpack_audio(compressed_audio_data)
         audio_segments = split_audio(audio_data)
         
         spectrograms = []
