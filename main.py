@@ -3,27 +3,38 @@ import torch
 import torchaudio
 import struct
 import numpy
-
 from functools import wraps
 import firebase_admin
 from firebase_admin import credentials, auth
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Firebase
-cred = credentials.ApplicationDefault()
+try:
+    cred = credentials.ApplicationDefault()
+    firebase_admin.initialize_app(cred)
+    logging.info("Firebase Admin SDK initialized successfully.")
+except Exception as e:
+    logging.error(f"Failed to initialize Firebase Admin SDK: {e}")
 # Local testing only: cred = credentials.Certificate('serviceAccountKey.json')
-firebase_admin.initialize_app(cred)
 
 def firebase_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         id_token = request.headers.get('Authorization')
         if not id_token or not id_token.startswith('Bearer '):
+            logging.warning("Authorization header missing or malformed.")
             return jsonify({'error': 'Unauthorized'}), 401
 
         try:
+            logging.info("Verifying Firebase ID Token.")
             decoded_token = auth.verify_id_token(id_token.split(' ')[1])
+            logging.info(f"Token verified successfully for: {decoded_token.get('uid')}")
             request.environ['user'] = decoded_token
         except Exception as e:
+            logging.error(f"Token verification failed: {e}")
             return jsonify({'error': 'Invalid token'}), 401
 
         return f(*args, **kwargs)
@@ -71,7 +82,7 @@ def process_audio():
     try:
         raw_audio_data = request.get_data()
         if (len(raw_audio_data)>MAX_AUDIO_BYTES):
-            return jsonify({"error": "Malformed data"}), 400
+            return jsonify({"error": "Malformed data, length check failed"}), 400
 
         audio_data = unpack_audio(raw_audio_data)
         audio_segments = split_audio(audio_data)
@@ -87,4 +98,4 @@ def process_audio():
         return response, 200
     except Exception as e:
         print(f"Error occurred: {str(e)}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({"error": "Internal server error creating spectrogram"}), 500
