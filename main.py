@@ -3,14 +3,20 @@ import torch
 import torchaudio
 import struct
 import numpy
+import os
 
 from functools import wraps
 import firebase_admin
 from firebase_admin import credentials, auth
 
 # Firebase
-cred = credentials.Certificate('serviceAccountKey.json')
-firebase_admin.initialize_app(cred)
+if not firebase_admin._apps:
+    if os.getenv("GOOGLE_CLOUD_PROJECT"):
+        cred = credentials.ApplicationDefault()
+    else:
+        cred = credentials.Certificate('serviceAccountKey.json')
+    firebase_admin.initialize_app(cred)
+
 def firebase_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
