@@ -14,7 +14,9 @@ logging.basicConfig(level=logging.INFO)
 # Firebase
 try:
     cred = credentials.ApplicationDefault()
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {
+        "projectId": "nsf-2131186-18936"
+    })
     logging.info("Firebase Admin SDK initialized successfully.")
 except Exception as e:
     logging.error(f"Failed to initialize Firebase Admin SDK: {e}")
