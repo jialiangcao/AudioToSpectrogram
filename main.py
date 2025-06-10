@@ -14,13 +14,15 @@ logging.basicConfig(level=logging.INFO)
 # Firebase
 try:
     cred = credentials.ApplicationDefault()
+
+    # Local testing only: 
+    # cred = credentials.Certificate('serviceAccountKey.json')
     firebase_admin.initialize_app(cred, {
         "projectId": "nsf-2131186-18936"
     })
     logging.info("Firebase Admin SDK initialized successfully.")
 except Exception as e:
     logging.error(f"Failed to initialize Firebase Admin SDK: {e}")
-# Local testing only: cred = credentials.Certificate('serviceAccountKey.json')
 
 def firebase_required(f):
     @wraps(f)
@@ -52,13 +54,15 @@ AUDIO_N_MELS = 64
 N_FFT = 1024
 HOP_LENGTH = N_FFT // 4
 SEGMENTS = 2
-BYTE_SIZE = 8 # Representing 8 bytes for a float64 or Double size, must match type input type
+BYTE_SIZE = 2 # 8 for Float64/Double, 4 for 32 bit, 2 for 16
 MAX_AUDIO_BYTES = SR*SEGMENTS*BYTE_SIZE
 
 def unpack_audio(raw_audio_data):
-    double_count = len(raw_audio_data) // BYTE_SIZE
+    sample_count = len(raw_audio_data) // BYTE_SIZE
     # '<' for little-endian (Apple), 'd' for double
-    return struct.unpack(f'<{double_count}d', raw_audio_data)
+    float16_samples = struct.unpack(f'<{sample_count}e', raw_audio_data)
+    # Convert back to Python float for processing
+    return [float(sample) for sample in float16_samples]
 
 # Divides data into segments
 def split_audio(audio_data, num_segments = SEGMENTS):
